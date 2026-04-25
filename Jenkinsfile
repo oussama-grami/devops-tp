@@ -8,7 +8,7 @@ pipeline {
     environment {
         SONAR_PROJECT_KEY  = 'devops-tp'
         SCANNER_HOME       = tool 'SonarScanner'
-        DOCKER_IMAGE       = 'TON_DOCKERHUB_USERNAME/devops-tp'
+        DOCKER_IMAGE       = 'oussemaguerami/devops-tp'
         DOCKER_TAG         = "${BUILD_NUMBER}"
         SONAR_TOKEN        = credentials('sonarqube-token')
     }
