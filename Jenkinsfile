@@ -7,6 +7,7 @@ pipeline {
 
     environment {
         SONAR_PROJECT_KEY = 'devops-tp'
+        SCANNER_HOME = tool 'SonarScanner'
     }
 
     stages {
@@ -30,24 +31,19 @@ pipeline {
                 echo '=== Exécution des tests unitaires ==='
                 sh 'npm test'
             }
-            post {
-                always {
-                    junit allowEmptyResults: true, testResults: '**/junit.xml'
-                }
-            }
         }
 
         stage('Static Analysis - SonarQube') {
             steps {
                 echo '=== Analyse SonarQube ==='
                 withSonarQubeEnv('SonarQube') {
-                    sh '''
-                        ${SONAR_SCANNER_HOME}/bin/sonar-scanner \
+                    sh """
+                        ${SCANNER_HOME}/bin/sonar-scanner \
                           -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
                           -Dsonar.sources=. \
                           -Dsonar.exclusions=node_modules/**,**/*.test.js \
                           -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
-                    '''
+                    """
                 }
             }
         }
