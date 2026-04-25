@@ -6,8 +6,11 @@ pipeline {
     }
 
     environment {
-        SONAR_PROJECT_KEY = 'devops-tp'
-        SCANNER_HOME = tool 'SonarScanner'
+        SONAR_PROJECT_KEY  = 'devops-tp'
+        SCANNER_HOME       = tool 'SonarScanner'
+        DOCKER_IMAGE       = 'TON_DOCKERHUB_USERNAME/devops-tp'
+        DOCKER_TAG         = "${BUILD_NUMBER}"
+        SONAR_TOKEN        = credentials('sonarqube-token')
     }
 
     stages {
@@ -57,14 +60,57 @@ pipeline {
             }
         }
 
+        stage('Docker Build') {
+            steps {
+                echo '=== Construction de l image Docker ==='
+                sh """
+                    docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} .
+                    docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${DOCKER_IMAGE}:latest
+                """
+            }
+        }
+
+        stage('Image Scanning - Trivy') {
+            steps {
+                echo '=== Scan de sécurité Trivy ==='
+                sh """
+                    trivy image \
+                      --exit-code 0 \
+                      --severity HIGH,CRITICAL \
+                      --format table \
+                      ${DOCKER_IMAGE}:${DOCKER_TAG}
+                """
+            }
+        }
+
+        stage('Docker Push') {
+            steps {
+                echo '=== Publication sur Docker Hub ==='
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub-credentials',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    sh """
+                        echo ${DOCKER_PASS} | docker login -u ${DOCKER_USER} --password-stdin
+                        docker push ${DOCKER_IMAGE}:${DOCKER_TAG}
+                        docker push ${DOCKER_IMAGE}:latest
+                    """
+                }
+            }
+        }
+
     }
 
     post {
         success {
-            echo '✅ Pipeline Exercice 1 terminé avec succès !'
+            echo '✅ Pipeline Exercice 2 terminé avec succès !'
         }
         failure {
             echo '❌ Pipeline échoué - vérifier les logs'
+        }
+        always {
+            sh 'docker logout'
         }
     }
 }
