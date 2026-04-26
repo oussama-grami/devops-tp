@@ -102,16 +102,17 @@ pipeline {
         }
 
         stage('Infrastructure - Terraform') {
-            steps {
-                echo '=== Provisionnement Terraform ==='
-                sh """
-                    cd terraform
-                    terraform init -input=false
-                    terraform plan -out=tfplan -input=false
-                    terraform apply -auto-approve tfplan
-                """
-            }
-        }
+    steps {
+        echo '=== Provisionnement Terraform ==='
+        sh """
+            cd terraform
+            terraform init -input=false
+            chmod -R 755 .terraform/
+            terraform plan -out=tfplan -input=false
+            terraform apply -auto-approve tfplan
+        """
+    }
+}
 
         stage('Deploy - Ansible') {
             steps {
