@@ -1,0 +1,29 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: devops-tp-alerts
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+  - name: devops-tp.rules
+    rules:
+    - alert: DevopsTPServiceDown
+      expr: |
+        absent(kube_pod_status_ready{namespace="devops-tp", condition="true"})
+      for: 2m
+      labels:
+        severity: critical
+      annotations:
+        summary: "DevOps TP service is down"
+        description: "No ready pods in namespace devops-tp for more than 2 minutes."
+    - alert: DevopsTPHighCPU
+      expr: |
+        sum(rate(container_cpu_usage_seconds_total{namespace="devops-tp"}[5m])) by (pod) > 0.15
+      for: 1m
+      labels:
+        severity: warning
+      annotations:
+        summary: "High CPU usage detected"
+        description: "Pod {{ $labels.pod }} is using high CPU."
