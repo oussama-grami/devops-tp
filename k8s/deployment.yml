@@ -15,6 +15,7 @@ spec:
       labels:
         app: devops-tp
     spec:
+      automountServiceAccountToken: false
       containers:
       - name: devops-tp
         image: DOCKER_IMAGE_PLACEHOLDER
@@ -24,9 +25,11 @@ spec:
           requests:
             memory: "64Mi"
             cpu: "100m"
+            ephemeral-storage: "128Mi"
           limits:
             memory: "128Mi"
             cpu: "200m"
+            ephemeral-storage: "256Mi"
         livenessProbe:
           httpGet:
             path: /health
