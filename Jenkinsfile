@@ -134,25 +134,32 @@ pipeline {
         }
 
         stage('Smoke Test') {
-            steps {
-                echo '=== Smoke Test ==='
-                sh """
-                    sleep 15
-                    CLUSTER_IP=\$(kubectl get svc devops-tp-service \
-                      -n devops-tp \
-                      -o jsonpath='{.spec.clusterIP}')
-                    echo "Testing: http://\$CLUSTER_IP/health"
-                    STATUS=\$(curl -s -o /dev/null -w "%{http_code}" \
-                      --max-time 10 http://\$CLUSTER_IP/health)
-                    echo "HTTP Status: \$STATUS"
-                    if [ "\$STATUS" != "200" ]; then
-                        echo "Smoke test FAILED"
-                        exit 1
-                    fi
-                    echo "Smoke test PASSED"
-                """
-            }
-        }
+    steps {
+        echo '=== Smoke Test ==='
+        sh """
+            # Lance port-forward en arrière-plan
+            kubectl port-forward svc/devops-tp-service 9090:80 -n devops-tp &
+            PF_PID=\$!
+            
+            # Attends que le port soit ouvert
+            sleep 10
+            
+            # Test
+            echo "Testing: http://localhost:9090/health"
+            STATUS=\$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 http://localhost:9090/health)
+            echo "HTTP Status: \$STATUS"
+            
+            # Arrête le port-forward
+            kill \$PF_PID || true
+            
+            if [ "\$STATUS" != "200" ]; then
+                echo "Smoke test FAILED"
+                exit 1
+            fi
+            echo "Smoke test PASSED"
+        """
+    }
+}
     }
 
     post {
