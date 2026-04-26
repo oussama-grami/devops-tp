@@ -100,6 +100,14 @@ pipeline {
                 }
             }
         }
+        stage('Load Image into Kind') {
+    steps {
+        echo '=== Chargement image dans kind ==='
+        sh """
+            kind load docker-image ${DOCKER_IMAGE}:${DOCKER_TAG} --name devops-tp
+        """
+    }
+}
 
         stage('Infrastructure - Terraform') {
     steps {
