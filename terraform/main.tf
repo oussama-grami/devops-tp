@@ -8,8 +8,8 @@ terraform {
 }
 
 provider "kubernetes" {
-  config_path    = "~/.kube/config"
-  config_context = "minikube"
+  config_path    = "/var/jenkins_home/.kube/config"
+  config_context = "kind-devops-tp"
 }
 
 resource "kubernetes_namespace" "devops_tp" {

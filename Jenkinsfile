@@ -11,6 +11,7 @@ pipeline {
         DOCKER_IMAGE       = 'oussemaguerami/devops-tp'
         DOCKER_TAG         = "${BUILD_NUMBER}"
         SONAR_TOKEN        = credentials('sonarqube-token')
+        KUBECONFIG         = '/var/jenkins_home/.kube/config'
     }
 
     stages {
@@ -100,17 +101,60 @@ pipeline {
             }
         }
 
+        stage('Infrastructure - Terraform') {
+            steps {
+                echo '=== Provisionnement Terraform ==='
+                sh """
+                    cd terraform
+                    terraform init -input=false
+                    terraform plan -out=tfplan -input=false
+                    terraform apply -auto-approve tfplan
+                """
+            }
+        }
+
+        stage('Deploy - Ansible') {
+            steps {
+                echo '=== Déploiement Ansible ==='
+                sh """
+                    export DOCKER_TAG=${DOCKER_TAG}
+                    export KUBECONFIG=${KUBECONFIG}
+                    ansible-playbook ansible/deploy.yml
+                """
+            }
+        }
+
+        stage('Smoke Test') {
+            steps {
+                echo '=== Smoke Test ==='
+                sh """
+                    sleep 15
+                    CLUSTER_IP=\$(kubectl get svc devops-tp-service \
+                      -n devops-tp \
+                      -o jsonpath='{.spec.clusterIP}')
+                    echo "Testing: http://\$CLUSTER_IP/health"
+                    STATUS=\$(curl -s -o /dev/null -w "%{http_code}" \
+                      --max-time 10 http://\$CLUSTER_IP/health)
+                    echo "HTTP Status: \$STATUS"
+                    if [ "\$STATUS" != "200" ]; then
+                        echo "Smoke test FAILED"
+                        exit 1
+                    fi
+                    echo "Smoke test PASSED"
+                """
+            }
+        }
     }
 
     post {
         success {
-            echo '✅ Pipeline Exercice 2 terminé avec succès !'
+            echo ' Pipeline complet terminé avec succès !'
         }
         failure {
-            echo '❌ Pipeline échoué - vérifier les logs'
+            echo 'Pipeline échoué'
         }
         always {
-            sh 'docker logout'
+            sh 'docker logout || true'
         }
     }
 }

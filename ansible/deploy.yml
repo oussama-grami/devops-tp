@@ -11,11 +11,7 @@
 
   tasks:
 
-    - name: Configure kubectl context to minikube
-      shell: kubectl config use-context minikube
-      changed_when: false
-
-    - name: Deploy application with correct image
+    - name: Apply Deployment with correct image
       shell: |
         sed 's|DOCKER_IMAGE_PLACEHOLDER|{{ docker_image }}:{{ docker_tag }}|g' \
         {{ playbook_dir }}/../k8s/deployment.yml | kubectl apply -f -
@@ -30,17 +26,17 @@
       shell: |
         kubectl rollout status deployment/devops-tp-app \
         -n {{ namespace }} --timeout=120s
-      register: rollout_status
+      register: rollout
 
     - name: Show rollout status
       debug:
-        msg: "{{ rollout_status.stdout }}"
+        msg: "{{ rollout.stdout }}"
 
     - name: Get pods status
       shell: kubectl get pods -n {{ namespace }}
-      register: pods_status
+      register: pods
       changed_when: false
 
     - name: Show pods
       debug:
-        msg: "{{ pods_status.stdout }}"
+        msg: "{{ pods.stdout }}"
